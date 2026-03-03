@@ -1,0 +1,10 @@
+{
+  "name": "com.furryvne.sdk",
+  "displayName": "FurryVNE SDK",
+  "version": "0.0.2",
+  "dependencies": {
+    "com.unity.visualeffectgraph": "12.1.8",
+	"com.unity.mathematics": "1.2.6",
+	"com.unity.feature.development": "1.0.1"
+  }
+}

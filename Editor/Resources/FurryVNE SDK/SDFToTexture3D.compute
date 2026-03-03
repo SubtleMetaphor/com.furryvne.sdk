@@ -1,0 +1,78 @@
+#pragma kernel CSBuffer
+#pragma kernel CSTex3D
+
+Texture3D<float> SDF;
+SamplerState MyLinearClampSampler;
+SamplerState MyPointClampSampler;
+float4 Dimensions;
+float MaxExtents;
+
+float4 Sample(float3 coords)
+{
+	//return SDF.SampleLevel(MyLinearClampSampler, coords, 0);
+	return SDF.SampleLevel(MyPointClampSampler, coords, 0);
+}
+
+float3 ToNormal(float3 coords, float3 distance)
+{
+	float x = Sample(coords + float3(distance.x, 0, 0)) - Sample(coords + float3(-distance.x, 0, 0));
+	float y = Sample(coords + float3(0, distance.y, 0)) - Sample(coords + float3(0, -distance.y, 0));
+	float z = Sample(coords + float3(0, 0, distance.z)) - Sample(coords + float3(0, 0, -distance.z));
+
+	float3 res = float3(x, y, z);
+
+	return normalize(res);
+}
+
+// ************************************************************************************
+
+RWStructuredBuffer<float4> Result;
+
+[numthreads(4,4,4)]
+void CSBuffer(uint3 id : SV_DispatchThreadID)
+{
+	bool valid = id.x < Dimensions.x && id.y < Dimensions.y && id.z < Dimensions.z;
+
+	if (!valid)
+	{
+		return;
+	}
+
+	float3 coords = id.xyz / Dimensions.xyz + .5 / Dimensions.xyz;
+	//float3 coords = id.xyz / Dimensions.xyz;
+
+	float _sample = Sample(coords);
+	float3 normal = ToNormal(coords, 1 / Dimensions.xyz);
+
+	uint computedID = id.x + (id.y * Dimensions.x) + (id.z * (Dimensions.x * Dimensions.y));
+
+	//Result[computedID] = float4(normal, 1);
+	Result[computedID] = float4(normal, _sample * MaxExtents);
+	//Result[computedID] = float4(normal, _sample);
+	//Result[computedID] = float4(_sample, 1, 1, 1);
+}
+
+// ************************************************************************************
+
+RWTexture3D<float4> ResultTex3D;
+
+[numthreads(4, 4, 4)]
+void CSTex3D(uint3 id : SV_DispatchThreadID)
+{
+	bool valid = id.x < Dimensions.x && id.y < Dimensions.y && id.z < Dimensions.z;
+
+	if (!valid)
+	{
+		return;
+	}
+
+	float3 coords = id.xyz / Dimensions.xyz + .5 / Dimensions.xyz;
+	//float3 coords = id.xyz / Dimensions.xyz;
+
+	float _sample = Sample(coords);
+	float3 normal = ToNormal(coords, 1 / Dimensions.xyz) * sign(_sample);
+
+	ResultTex3D[id.xyz] = float4(normal, _sample * MaxExtents);
+	//ResultTex3D[id.xyz] = 1;
+	//ResultTex3D[id.xyz] = float4(normal, _sample);
+}
