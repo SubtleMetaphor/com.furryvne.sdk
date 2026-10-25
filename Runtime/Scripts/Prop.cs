@@ -12,6 +12,8 @@ namespace YL2.Interaction
 	[DisallowMultipleComponent]
 	public class Prop : MonoBehaviour
 	{
+		public bool mirrorAttachedNodesInPropSpace = false;
+		
 		[SerializeField] [HideInInspector]
 		private string id;
 
